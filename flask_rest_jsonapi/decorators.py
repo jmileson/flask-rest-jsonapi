@@ -3,6 +3,7 @@
 """Decorators to check headers and method requirements for each Api calls"""
 
 import json
+import sys
 from functools import wraps
 
 from flask import request, make_response, jsonify, current_app
@@ -10,6 +11,8 @@ from flask import request, make_response, jsonify, current_app
 from flask_rest_jsonapi.errors import jsonapi_errors
 from flask_rest_jsonapi.exceptions import JsonApiException
 from flask_rest_jsonapi.utils import JSONEncoder
+
+import six
 
 
 def check_headers(func):
@@ -57,7 +60,8 @@ def check_method_requirements(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         error_message = "You must provide {error_field} in {cls} to get access to the default {method} method"
-        error_data = {'cls': args[0].__class__.__name__, 'method': request.method.lower()}
+        error_data = {'cls': args[0].__class__.__name__,
+                      'method': request.method.lower()}
 
         if request.method != 'DELETE':
             if not hasattr(args[0], 'schema'):
@@ -80,7 +84,7 @@ def jsonapi_exception_formatter(func):
                                  headers)
         except Exception as e:
             if current_app.config['DEBUG'] is True:
-                raise e
+                six.reraise(*sys.exc_info())
 
             if 'sentry' in current_app.extensions:
                 current_app.extensions['sentry'].captureException()
